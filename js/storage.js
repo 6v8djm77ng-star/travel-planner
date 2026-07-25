@@ -85,5 +85,27 @@
     save(load().filter(function (t) { return t.id !== id; }));
   }
 
-  return { newTrip: newTrip, all: all, get: get, upsert: upsert, remove: remove, uid: uid, _KEY: KEY };
+  var SETTINGS_KEY = 'travel-planner:settings:v1';
+
+  function getSettings() {
+    try {
+      var raw = (typeof localStorage !== 'undefined') ? localStorage.getItem(SETTINGS_KEY) : null;
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+
+  function saveSettings(s) {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s || {}));
+  }
+
+  function hasApiCreds() {
+    var s = getSettings();
+    return !!(s.apiKey && s.apiSecret);
+  }
+
+  return {
+    newTrip: newTrip, all: all, get: get, upsert: upsert, remove: remove, uid: uid,
+    getSettings: getSettings, saveSettings: saveSettings, hasApiCreds: hasApiCreds,
+    _KEY: KEY
+  };
 });

@@ -165,6 +165,28 @@ label.check input { width: auto; margin: 0; }
 .row-end { display: flex; align-items: center; gap: 8px; }
 .done { text-decoration: line-through; color: var(--muted); }
 
+/* live search results */
+.topbar-actions { display: flex; align-items: center; gap: 4px; }
+.live-results { margin-top: 12px; }
+.live-results h4 { margin: 14px 0 6px; }
+.offers { list-style: none; margin: 0; padding: 0; }
+.offer {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 12px 8px; border-top: 1px solid var(--line);
+}
+.offer.elal { background: var(--bg); border-radius: 10px; border-top: none; margin-bottom: 4px; }
+.offer-price { min-width: 76px; font-size: 1.1rem; text-align: center; }
+.offer-body { flex: 1; }
+.leg { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; font-size: .92rem; }
+.leg-label { color: var(--muted); font-size: .85rem; min-width: 42px; }
+.loading { color: var(--muted); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .45; } }
+.fallback-links { margin-top: 12px; }
+.fallback-links summary { cursor: pointer; color: var(--muted); font-size: .9rem; }
+.fallback-links .links { margin-top: 10px; }
+.steps { padding-inline-start: 18px; }
+.steps li { margin-bottom: 4px; }
+
 .muted { color: var(--muted); }
 .small { font-size: .88rem; }
 .overview-head { display: flex; gap: 8px; flex-wrap: wrap; }

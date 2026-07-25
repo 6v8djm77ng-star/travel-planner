@@ -1,10 +1,11 @@
 /* Service worker - caches the app shell so the planner works offline. */
-const CACHE = 'travel-planner-v1';
+const CACHE = 'travel-planner-v2';
 const ASSETS = [
   './index.html',
   './css/styles.css',
   './js/links.js',
   './js/storage.js',
+  './js/amadeus.js',
   './js/app.js',
   './manifest.webmanifest',
   './icons/icon.svg'
@@ -24,15 +25,17 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // never intercept cross-origin requests (e.g. live price API calls)
+  if (new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
     caches.match(e.request).then((hit) => hit ||
       fetch(e.request).then((res) => {
-        if (res.ok && new URL(e.request.url).origin === location.origin) {
+        if (res.ok) {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(e.request, copy));
         }
         return res;
-      }).catch(() => caches.match('./index.html'))
+      }).catch(() => (e.request.mode === 'navigate' ? caches.match('./index.html') : Promise.reject(new Error('offline'))))
     )
   );
 });
