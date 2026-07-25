@@ -1,0 +1,20 @@
+{
+  "name": "מתכנן הנסיעות שלי",
+  "short_name": "נסיעות",
+  "description": "תכנון נסיעה מא׳ עד ת׳: טיסות, מלונות, לו״ז יומי, תקציב, מסמכים ותזכורות",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6fb",
+  "theme_color": "#2456e6",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
