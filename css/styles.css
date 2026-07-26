@@ -189,6 +189,7 @@ label.check input { width: auto; margin: 0; }
 
 .muted { color: var(--muted); }
 .small { font-size: .88rem; }
+.app-version { text-align: center; margin-top: 28px; opacity: .7; }
 .overview-head { display: flex; gap: 8px; flex-wrap: wrap; }
 
 dialog {

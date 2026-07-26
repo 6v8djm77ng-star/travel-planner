@@ -1,5 +1,6 @@
-/* Service worker - caches the app shell so the planner works offline. */
-const CACHE = 'travel-planner-v3';
+/* Service worker - network-first so updates arrive immediately;
+   falls back to cache only when offline. */
+const CACHE = 'travel-planner-v4';
 const ASSETS = [
   './index.html',
   './css/styles.css',
@@ -28,14 +29,15 @@ self.addEventListener('fetch', (e) => {
   // never intercept cross-origin requests (e.g. live price API calls)
   if (new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
-    caches.match(e.request).then((hit) => hit ||
-      fetch(e.request).then((res) => {
-        if (res.ok) {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
-        }
-        return res;
-      }).catch(() => (e.request.mode === 'navigate' ? caches.match('./index.html') : Promise.reject(new Error('offline'))))
+    fetch(e.request).then((res) => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy));
+      }
+      return res;
+    }).catch(() =>
+      caches.match(e.request).then((hit) => hit ||
+        (e.request.mode === 'navigate' ? caches.match('./index.html') : Promise.reject(new Error('offline'))))
     )
   );
 });

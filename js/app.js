@@ -2,6 +2,8 @@
 (function () {
   'use strict';
 
+  const APP_VERSION = 4;
+
   const $ = (sel, el) => (el || document).querySelector(sel);
   const app = $('#app');
 
@@ -136,6 +138,7 @@
           ${past.length ? `<h2 class="section-title muted">נסיעות שהסתיימו</h2>
             <div class="trip-grid">${past.map(tripCard).join('')}</div>` : ''}
         `}
+        <p class="app-version muted small">גרסה ${APP_VERSION} · חיפוש מחירים: Travelpayouts</p>
       </main>`;
   }
 
