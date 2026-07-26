@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = 5;
+  const APP_VERSION = 6;
 
   const $ = (sel, el) => (el || document).querySelector(sel);
   const app = $('#app');

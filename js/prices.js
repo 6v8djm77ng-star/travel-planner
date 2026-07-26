@@ -17,9 +17,18 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var FLIGHTS_URL = 'https://api.travelpayouts.com/aviasales/v3/prices_for_dates';
-  var HOTELS_URL = 'https://engine.hotellook.com/api/v2/cache.json';
+  var FLIGHTS_HOST = 'api.travelpayouts.com';
+  var FLIGHTS_PATH = '/aviasales/v3/prices_for_dates';
+  var HOTELS_HOST = 'engine.hotellook.com';
+  var HOTELS_PATH = '/api/v2/cache.json';
   var BOOK_BASE = 'https://www.aviasales.com';
+
+  // When the app is served from Netlify, a same-origin relay function is
+  // available and bypasses the price APIs' missing CORS headers entirely.
+  var PROXY_PATH =
+    (typeof location !== 'undefined' && /\.netlify\.app$/.test(location.hostname))
+      ? '/.netlify/functions/prices'
+      : '';
 
   var TRIP_CLASS = { economy: '0', premium_economy: '0', business: '1', first: '2' };
 
@@ -149,31 +158,40 @@
     });
   }
 
-  function apiGet(url, params, token) {
-    return fetch(url + '?' + qs(params) + '&token=' + encodeURIComponent(token || ''))
-      .then(function (r) {
-        if (r.status === 401 || r.status === 403) throw new Error('BAD_TOKEN');
-        if (r.status === 429) throw new Error('RATE_LIMIT');
-        if (!r.ok) throw new Error('HTTP_' + r.status);
-        return r.json();
-      })
+  function handleStatus(r) {
+    if (r.status === 401 || r.status === 403) throw new Error('BAD_TOKEN');
+    if (r.status === 429) throw new Error('RATE_LIMIT');
+    if (!r.ok) throw new Error('HTTP_' + r.status);
+    return r.json();
+  }
+
+  function apiGet(host, path, params, token) {
+    if (PROXY_PATH) {
+      var proxied = PROXY_PATH + '?host=' + encodeURIComponent(host) +
+        '&path=' + encodeURIComponent(path) + '&' + qs(params) +
+        '&token=' + encodeURIComponent(token || '');
+      return fetch(proxied).then(handleStatus).then(checkPayload);
+    }
+    var direct = 'https://' + host + path;
+    return fetch(direct + '?' + qs(params) + '&token=' + encodeURIComponent(token || ''))
+      .then(handleStatus)
       .catch(function (err) {
         // network-layer failure (CORS / content blocking) -> try JSONP instead
         var m = String(err && err.message || err);
         var networky = /load failed|failed to fetch|networkerror|cancelled/i.test(m);
         if (!networky || typeof document === 'undefined') throw err;
-        return jsonpGet(url, params, token);
+        return jsonpGet(direct, params, token);
       })
       .then(checkPayload);
   }
 
   function searchFlights(trip, creds) {
-    return apiGet(FLIGHTS_URL, buildFlightParams(trip), creds && creds.apiToken)
+    return apiGet(FLIGHTS_HOST, FLIGHTS_PATH, buildFlightParams(trip), creds && creds.apiToken)
       .then(parseFlights);
   }
 
   function searchHotels(trip, creds) {
-    return apiGet(HOTELS_URL, buildHotelParams(trip), creds && creds.apiToken)
+    return apiGet(HOTELS_HOST, HOTELS_PATH, buildHotelParams(trip), creds && creds.apiToken)
       .then(function (json) { return parseHotels(json, trip.hotelStars || 5); });
   }
 
