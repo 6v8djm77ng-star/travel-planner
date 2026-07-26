@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = 6;
+  const APP_VERSION = 7;
 
   const $ = (sel, el) => (el || document).querySelector(sel);
   const app = $('#app');
@@ -586,15 +586,26 @@
     if (!box) return;
     box.innerHTML = '<p class="loading">🔍 מחפש טיסות... זה לוקח כמה שניות</p>';
     const creds = TripStore.getSettings();
-    TravelApi.searchFlights(t, creds)
-      .then(rows => {
-        if (!rows.length && t.directOnly) {
-          return TravelApi.searchFlights(Object.assign({}, t, { directOnly: false }), creds)
-            .then(rows2 => box.innerHTML = renderFlightResults(rows2, 'לא נמצאו טיסות ישירות - מציג גם טיסות עם עצירה:'));
-        }
-        box.innerHTML = renderFlightResults(rows);
-      })
-      .catch(err => { box.innerHTML = '<p class="hint">' + searchErrorMessage(err) + '</p>'; });
+    const attempts = [{ trip: t, note: '' }];
+    if (t.directOnly) {
+      attempts.push({ trip: Object.assign({}, t, { directOnly: false }), note: 'לא נמצאו טיסות ישירות - מציג גם טיסות עם עצירה:' });
+    }
+    if (t.cabin === 'business' || t.cabin === 'first' || t.cabin === 'premium_economy') {
+      attempts.push({
+        trip: Object.assign({}, t, { cabin: 'economy', directOnly: false }),
+        note: 'במאגר אין כרגע מחירי ' + ((CABINS.find(c => c[0] === t.cabin) || ['', ''])[1]) +
+          ' לקו הזה, אז לצורך התמצאות מוצגים מחירי תיירים. את מחיר המחלקה המדויק תראה בלחיצה על "להזמנה" או בקישורים החיצוניים.'
+      });
+    }
+    (function tryNext(i) {
+      if (i >= attempts.length) { box.innerHTML = renderFlightResults([], ''); return; }
+      TravelApi.searchFlights(attempts[i].trip, creds)
+        .then(rows => {
+          if (rows.length) box.innerHTML = renderFlightResults(rows, attempts[i].note);
+          else tryNext(i + 1);
+        })
+        .catch(err => { box.innerHTML = '<p class="hint">' + searchErrorMessage(err) + '</p>'; });
+    })(0);
   }
 
   function runLiveHotels(t) {
