@@ -120,6 +120,35 @@
 
   /* ---------- runtime (browser) ---------- */
 
+  function checkPayload(j) {
+    if (j && j.success === false) {
+      throw new Error(/token/i.test(j.error || '') ? 'BAD_TOKEN' : (j.error || 'API_ERROR'));
+    }
+    return j;
+  }
+
+  /**
+   * JSONP fallback: loads the API response as a <script> tag, which browsers
+   * never subject to CORS or fetch-level content blocking. The API supports a
+   * `callback` parameter for exactly this use.
+   */
+  function jsonpGet(url, params, token) {
+    return new Promise(function (resolve, reject) {
+      var cb = '__tpJsonp' + Math.floor(Math.random() * 1e9);
+      var s = document.createElement('script');
+      var timer = setTimeout(function () { cleanup(); reject(new Error('JSONP_TIMEOUT')); }, 20000);
+      function cleanup() {
+        clearTimeout(timer);
+        try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+        if (s.parentNode) s.parentNode.removeChild(s);
+      }
+      window[cb] = function (data) { cleanup(); resolve(data); };
+      s.onerror = function () { cleanup(); reject(new Error('JSONP_LOAD')); };
+      s.src = url + '?' + qs(params) + '&token=' + encodeURIComponent(token || '') + '&callback=' + cb;
+      document.head.appendChild(s);
+    });
+  }
+
   function apiGet(url, params, token) {
     return fetch(url + '?' + qs(params) + '&token=' + encodeURIComponent(token || ''))
       .then(function (r) {
@@ -128,12 +157,14 @@
         if (!r.ok) throw new Error('HTTP_' + r.status);
         return r.json();
       })
-      .then(function (j) {
-        if (j && j.success === false) {
-          throw new Error(/token/i.test(j.error || '') ? 'BAD_TOKEN' : (j.error || 'API_ERROR'));
-        }
-        return j;
-      });
+      .catch(function (err) {
+        // network-layer failure (CORS / content blocking) -> try JSONP instead
+        var m = String(err && err.message || err);
+        var networky = /load failed|failed to fetch|networkerror|cancelled/i.test(m);
+        if (!networky || typeof document === 'undefined') throw err;
+        return jsonpGet(url, params, token);
+      })
+      .then(checkPayload);
   }
 
   function searchFlights(trip, creds) {

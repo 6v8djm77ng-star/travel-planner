@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = 4;
+  const APP_VERSION = 5;
 
   const $ = (sel, el) => (el || document).querySelector(sel);
   const app = $('#app');
@@ -576,7 +576,8 @@
     const m = String(err && err.message || err);
     if (m.indexOf('BAD_TOKEN') !== -1) return 'הקוד שהוזן לא תקין. פתח את ההגדרות ⚙️ ובדוק שהעתקת נכון את ה-API Token.';
     if (m.indexOf('RATE_LIMIT') !== -1) return 'יותר מדי חיפושים ברצף - חכה חצי דקה ונסה שוב.';
-    if (m.indexOf('Failed to fetch') !== -1 || m.indexOf('NetworkError') !== -1) return 'אין חיבור לשירות החיפוש - בדוק את האינטרנט ונסה שוב.';
+    if (m.indexOf('JSONP_LOAD') !== -1) return 'שירות המחירים דחה את הבקשה. בדוק בהגדרות ⚙️ שה-API Token הודבק נכון (בלי רווחים), המתן דקה ונסה שוב.';
+    if (m.indexOf('JSONP_TIMEOUT') !== -1 || m.indexOf('Failed to fetch') !== -1 || m.indexOf('Load failed') !== -1 || m.indexOf('NetworkError') !== -1) return 'אין חיבור לשירות החיפוש - בדוק את האינטרנט ונסה שוב.';
     return 'החיפוש נכשל (' + esc(m) + '). נסה שוב עוד רגע, או השתמש בקישורים החיצוניים למטה.';
   }
 

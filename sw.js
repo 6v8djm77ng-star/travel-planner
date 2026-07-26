@@ -1,6 +1,6 @@
 /* Service worker - network-first so updates arrive immediately;
    falls back to cache only when offline. */
-const CACHE = 'travel-planner-v4';
+const CACHE = 'travel-planner-v5';
 const ASSETS = [
   './index.html',
   './css/styles.css',
