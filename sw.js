@@ -1,11 +1,11 @@
 /* Service worker - caches the app shell so the planner works offline. */
-const CACHE = 'travel-planner-v2';
+const CACHE = 'travel-planner-v3';
 const ASSETS = [
   './index.html',
   './css/styles.css',
   './js/links.js',
   './js/storage.js',
-  './js/amadeus.js',
+  './js/prices.js',
   './js/app.js',
   './manifest.webmanifest',
   './icons/icon.svg'

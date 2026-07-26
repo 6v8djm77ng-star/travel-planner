@@ -510,21 +510,31 @@
 
   /* ---------- live search (in-app prices via TravelApi) ---------- */
 
-  function fmtTime(iso) { return iso ? iso.slice(11, 16) : ''; }
+  function fmtTime(iso) { return iso && iso.length >= 16 ? iso.slice(11, 16) : ''; }
+
+  function stopsLabel(stops) {
+    if (stops == null) return '';
+    if (stops === 0) return 'ישירה';
+    if (stops === 1) return 'עצירה אחת';
+    return stops + ' עצירות';
+  }
 
   function legLine(label, leg) {
     if (!leg) return '';
-    const stops = leg.stops === 0 ? 'ישירה' : leg.stops + ' עצירות';
+    const time = fmtTime(leg.dep);
+    const stops = stopsLabel(leg.stops);
     return `<div class="leg"><span class="leg-label">${label}</span>
-      <bdi>${esc(leg.from)} ${fmtTime(leg.dep)} → ${esc(leg.to)} ${fmtTime(leg.arr)}</bdi>
-      <span class="muted small">(${stops})</span></div>`;
+      <bdi>${esc(leg.from)} → ${esc(leg.to)}${time ? ' · ' + time : ''}</bdi>
+      ${stops ? `<span class="muted small">(${stops})</span>` : ''}</div>`;
   }
 
   function flightRow(r) {
     return `<li class="offer ${r.isElal ? 'elal' : ''}">
-      <div class="offer-price"><b>$${Math.round(r.price).toLocaleString()}</b></div>
+      <div class="offer-price"><b>$${Math.round(r.price).toLocaleString()}</b>
+        ${r.bookUrl ? `<a class="btn small" href="${r.bookUrl}" target="_blank" rel="noopener">להזמנה ↗</a>` : ''}
+      </div>
       <div class="offer-body">
-        <div>${r.isElal ? '<span class="badge business">אל על ✈️</span> ' : ''}${esc((r.outbound ? r.outbound.carriers : []).join(', '))}</div>
+        <div>${r.isElal ? '<span class="badge business">✈️ אל על</span>' : esc(r.airlineName)}</div>
         ${legLine('הלוך:', r.outbound)}
         ${legLine('חזור:', r.inbound)}
       </div>
@@ -533,35 +543,35 @@
 
   function renderFlightResults(rows, note) {
     if (!rows.length) {
-      return '<p class="hint">לא נמצאו טיסות ליעד ולתאריכים האלה במאגר. נסה תאריכים אחרים, או פתח את "חיפוש באתרים חיצוניים" למטה.</p>';
+      return '<p class="hint">לא נמצאו מחירים ליעד ולתאריכים האלה במאגר. נסה בלי סינון טיסות ישירות, או פתח את "חיפוש באתרים חיצוניים" למטה.</p>';
     }
     const elal = rows.filter(r => r.isElal);
     const rest = rows.filter(r => !r.isElal).slice(0, 7);
     let html = note ? `<p class="hint">${note}</p>` : '';
     if (elal.length) html += `<h4>טיסות אל על</h4><ul class="offers">${elal.slice(0, 5).map(flightRow).join('')}</ul>`;
     if (rest.length) html += `<h4>${elal.length ? 'חברות אחרות (להשוואה)' : 'הטיסות הזולות ביותר'}</h4><ul class="offers">${rest.map(flightRow).join('')}</ul>`;
-    html += '<p class="muted small">המחירים לכל הנוסעים, הלוך ושוב. להזמנה: פתח את אתר אל על או אחד האתרים למטה.</p>';
+    html += '<p class="muted small">מחירים לנוסע, הלוך ושוב, כפי שנצפו בחיפושים אחרונים - המחיר הסופי מאושר בעמוד ההזמנה.</p>';
     return html;
   }
 
   function renderHotelResults(rows, nights) {
     if (!rows.length) {
-      return '<p class="hint">לא נמצאו מלונות זמינים במאגר לתאריכים האלה. פתח את "חיפוש באתרים חיצוניים" למטה.</p>';
+      return '<p class="hint">לא נמצאו מלונות במאגר לתאריכים האלה. פתח את "חיפוש באתרים חיצוניים" למטה.</p>';
     }
     const items = rows.slice(0, 8).map(h => `<li class="offer">
-      <div class="offer-price"><b>$${Math.round(h.price).toLocaleString()}</b><div class="muted small">ל-${nights} לילות</div></div>
+      <div class="offer-price"><b>$${Math.round(h.price).toLocaleString()}</b><div class="muted small">ללילה בממוצע</div></div>
       <div class="offer-body">
         <div><b>${esc(h.name)}</b></div>
-        ${h.distanceKm != null ? `<div class="muted small"><bdi>${h.distanceKm} ק"מ</bdi> ממרכז העיר</div>` : ''}
+        <div class="muted small">${'⭐'.repeat(Math.min(5, h.stars || 0))}</div>
       </div>
     </li>`).join('');
     return `<ul class="offers">${items}</ul>
-      <p class="muted small">מלונות ${'5'} כוכבים, המחיר הכולל לשהות. להזמנה: חפש את שם המלון ב-Booking דרך הקישורים למטה.</p>`;
+      <p class="muted small">מחיר ממוצע ללילה. להזמנה: חפש את שם המלון ב-Booking דרך הקישורים למטה.</p>`;
   }
 
   function searchErrorMessage(err) {
     const m = String(err && err.message || err);
-    if (m.indexOf('BAD_CREDENTIALS') !== -1) return 'המפתחות שהוזנו לא תקינים. פתח את ההגדרות ⚙️ ובדוק שהעתקת נכון את ה-API Key וה-API Secret.';
+    if (m.indexOf('BAD_TOKEN') !== -1) return 'הקוד שהוזן לא תקין. פתח את ההגדרות ⚙️ ובדוק שהעתקת נכון את ה-API Token.';
     if (m.indexOf('RATE_LIMIT') !== -1) return 'יותר מדי חיפושים ברצף - חכה חצי דקה ונסה שוב.';
     if (m.indexOf('Failed to fetch') !== -1 || m.indexOf('NetworkError') !== -1) return 'אין חיבור לשירות החיפוש - בדוק את האינטרנט ונסה שוב.';
     return 'החיפוש נכשל (' + esc(m) + '). נסה שוב עוד רגע, או השתמש בקישורים החיצוניים למטה.';
@@ -603,16 +613,15 @@
     dlg.innerHTML = `
       <form class="form" method="dialog">
         <h3>⚙️ חיפוש אוטומטי בתוך האפליקציה</h3>
-        <p class="muted small">כדי להציג מחירי טיסות ומלונות בתוך האפליקציה, צריך חיבור חינמי לשירות הנתונים ‏Amadeus‏
-        (הספק של סוכנויות הנסיעות). נרשמים פעם אחת, מעתיקים לכאן שני קודים - וזהו.
-        הקודים נשמרים רק במכשיר הזה.</p>
+        <p class="muted small">כדי להציג מחירי טיסות ומלונות בתוך האפליקציה, צריך חיבור חינמי לשירות הנתונים של ‏Travelpayouts‏
+        (מבית מנוע הטיסות ‏Aviasales‏). נרשמים פעם אחת, מעתיקים לכאן קוד אחד - וזהו.
+        הקוד נשמר רק במכשיר הזה.</p>
         <ol class="muted small steps">
-          <li>היכנס ל-<a href="https://developers.amadeus.com/register" target="_blank" rel="noopener">developers.amadeus.com/register</a> והירשם בחינם</li>
-          <li>אחרי אישור המייל: ‏My Self-Service Workspace ← Create New App</li>
-          <li>העתק לכאן את ‏API Key‏ ואת ‏API Secret‏</li>
+          <li>היכנס ל-<a href="https://www.travelpayouts.com" target="_blank" rel="noopener">travelpayouts.com</a>, לחץ ‏Sign up‏ והירשם בחינם</li>
+          <li>אשר את המייל שיישלח אליך</li>
+          <li>אחרי הכניסה: לחץ על שם המשתמש למעלה ← ‏Profile‏ ← העתק את ה-‏API token</li>
         </ol>
-        <label>API Key <input name="apiKey" dir="ltr" autocomplete="off" value="${esc(s.apiKey || '')}" placeholder="לדוגמה: GxxxxxxxxxxxxxxA"></label>
-        <label>API Secret <input name="apiSecret" dir="ltr" autocomplete="off" value="${esc(s.apiSecret || '')}" placeholder="לדוגמה: sxxxxxxxxxxxQ"></label>
+        <label>API Token <input name="apiToken" dir="ltr" autocomplete="off" value="${esc(s.apiToken || '')}" placeholder="הדבק כאן את הקוד"></label>
         <div class="form-actions">
           <button class="btn primary" value="save">שמירה</button>
           <button class="btn ghost" value="cancel" formnovalidate>סגירה</button>
@@ -623,8 +632,7 @@
       if (e.submitter && e.submitter.value === 'save') {
         const f = new FormData(e.target);
         TripStore.saveSettings({
-          apiKey: String(f.get('apiKey') || '').trim(),
-          apiSecret: String(f.get('apiSecret') || '').trim()
+          apiToken: String(f.get('apiToken') || '').trim()
         });
         render();
       }

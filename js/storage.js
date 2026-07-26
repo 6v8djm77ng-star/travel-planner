@@ -100,7 +100,7 @@
 
   function hasApiCreds() {
     var s = getSettings();
-    return !!(s.apiKey && s.apiSecret);
+    return !!s.apiToken;
   }
 
   return {
